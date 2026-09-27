@@ -1,0 +1,17 @@
+# Minimal install for MOCK MODE demo only (no TensorFlow, no dataset needed).
+# The API will auto-detect that TensorFlow is missing and serve simulated
+# predictions instead, so you can see the full app working immediately.
+#
+# Install with:
+#   pip install -r requirements-mock.txt
+#
+# For real predictions, install requirements.txt instead (includes TensorFlow)
+# and train the model per the README.
+
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+numpy==1.26.4
+pillow==10.3.0
+python-multipart==0.0.9
+reportlab==4.2.0
+requests==2.32.3

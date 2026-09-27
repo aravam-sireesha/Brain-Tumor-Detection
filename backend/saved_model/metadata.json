@@ -1,0 +1,20 @@
+{
+  "class_names": [
+    "glioma",
+    "meningioma",
+    "notumor",
+    "pituitary"
+  ],
+  "image_size": [
+    224,
+    224
+  ],
+  "test_accuracy": 0.8843749761581421,
+  "test_loss": 0.41665688157081604,
+  "trained_at": "2026-09-27T08:52:09.545913+00:00",
+  "framework": "tensorflow/keras",
+  "base_model": "EfficientNetB0",
+  "training_images": 4760,
+  "validation_images": 840,
+  "testing_images": 1600
+}

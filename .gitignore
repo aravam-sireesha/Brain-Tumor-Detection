@@ -1,0 +1,68 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# =========================
+# Dataset - DO NOT PUSH
+# =========================
+dataset/
+*.zip
+
+# =========================
+# Trained model
+# KEEP the .keras model
+# =========================
+backend/saved_model/*.h5
+!backend/saved_model/brain_tumor_model.keras
+!backend/saved_model/metadata.json
+
+# =========================
+# Local database
+# =========================
+backend/history.db
+
+# =========================
+# Generated reports
+# =========================
+backend/reports/*.pdf
+reports/*.png
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Node / frontend
+# =========================
+node_modules/
+frontend/node_modules/
+dist/
+build/
+frontend/dist/
+frontend/.env
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# OS / editor
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
