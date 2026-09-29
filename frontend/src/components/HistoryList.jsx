@@ -1,43 +1,72 @@
-import { Clock, Download } from 'lucide-react'
-import { reportDownloadUrl } from '../api'
+import { Clock3, FileText, UserRound } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import ReportButton from './ReportButton.jsx'
 
 export default function HistoryList({ history }) {
   if (!history?.length) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 text-center">
-        <p className="text-slate-500 text-sm">No predictions yet. Your history will show up here.</p>
+      <div className="empty-history">
+        <span className="empty-history-icon"><FileText size={23} /></span>
+        <h2>No MRI analyses yet.</h2>
+        <p>Completed analyses saved by the backend will appear here.</p>
+        <Link className="button button-primary empty-history-action" to="/analyze">Analyze Your First MRI</Link>
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/40 divide-y divide-slate-800">
-      {history.map((item) => (
-        <div key={item.id} className="p-4 flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-slate-200 font-medium truncate">{item.prediction}</p>
-            <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-              <Clock size={12} />
-              {new Date(item.created_at).toLocaleString()}
-            </p>
-            <p className="text-xs text-slate-500 mt-0.5">{item.patient_name}</p>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="text-sm font-mono text-cyan-300">
-              {item.confidence.toFixed(1)}%
-            </span>
-            <a
-              href={reportDownloadUrl(item.id)}
-              target="_blank"
-              rel="noreferrer"
-              className="text-slate-500 hover:text-cyan-400"
-              aria-label="Download report"
-            >
-              <Download size={16} />
-            </a>
-          </div>
-        </div>
-      ))}
+    <div className="history-table-wrap">
+      <table className="history-table">
+        <thead>
+          <tr>
+            <th scope="col">Record</th>
+            <th scope="col">Patient</th>
+            <th scope="col">Prediction</th>
+            <th scope="col">Confidence</th>
+            <th scope="col">Date</th>
+            <th scope="col"><span className="visually-hidden">Report</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {history.map((item) => (
+            <tr key={item.id}>
+              <td><span className="record-id">#{item.id}</span></td>
+              <td><span className="table-patient"><UserRound size={15} />{item.patient_name || 'Not provided'}</span></td>
+              <td><span className="prediction-badge">{item.prediction}</span></td>
+              <td><strong className="table-confidence">{formatScore(item.confidence)}%</strong></td>
+              <td><span className="table-date"><Clock3 size={14} />{formatDate(item.created_at)}</span></td>
+              <td><ReportButton recordId={item.id} compact /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="history-mobile-list">
+        {history.map((item) => (
+          <article className="history-mobile-card" key={item.id}>
+            <div className="history-mobile-top">
+              <span className="prediction-badge">{item.prediction}</span>
+              <span className="table-confidence">{formatScore(item.confidence)}%</span>
+            </div>
+            <div className="history-mobile-meta">
+              <span><UserRound size={14} />{item.patient_name || 'Not provided'}</span>
+              <span><Clock3 size={14} />{formatDate(item.created_at)}</span>
+              <span>Record #{item.id}</span>
+            </div>
+            <ReportButton recordId={item.id} />
+          </article>
+        ))}
+      </div>
     </div>
   )
+}
+
+function formatDate(value) {
+  if (!value) return 'Not available'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleString()
+}
+
+function formatScore(value) {
+  const score = Number(value)
+  return Number.isFinite(score) ? score.toFixed(2) : '—'
 }

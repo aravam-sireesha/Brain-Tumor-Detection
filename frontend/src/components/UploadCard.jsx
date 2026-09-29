@@ -1,76 +1,107 @@
-import { useCallback, useRef, useState } from 'react'
-import { UploadCloud, ScanLine, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { FileImage, ImagePlus, Upload, X } from 'lucide-react'
 
-export default function UploadCard({ onFileSelected, previewUrl, onClear }) {
+export default function UploadCard({ file, onFileSelected, onClear, onError, disabled = false }) {
   const inputRef = useRef(null)
   const [dragging, setDragging] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState('')
 
   const handleFiles = useCallback(
     (files) => {
-      const file = files?.[0]
-      if (!file) return
-      if (!file.type.match(/image\/(jpeg|jpg|png)/)) {
-        alert('Please upload a JPEG or PNG MRI image.')
+      const selectedFile = files?.[0]
+      if (!selectedFile) return
+      if (!selectedFile.size) {
+        onError('The selected file is empty. Please choose another image.')
         return
       }
-      onFileSelected(file)
+
+      const extensionIsValid = /\.(jpe?g|png)$/i.test(selectedFile.name)
+      const typeIsValid = ['image/jpeg', 'image/jpg', 'image/png'].includes(selectedFile.type)
+      if (!extensionIsValid || (selectedFile.type && !typeIsValid)) {
+        onError('Please upload a JPG, JPEG, or PNG MRI image.')
+        return
+      }
+      onError('')
+      onFileSelected(selectedFile)
     },
-    [onFileSelected]
+    [onError, onFileSelected]
   )
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl('')
+      return undefined
+    }
+    const objectUrl = URL.createObjectURL(file)
+    setPreviewUrl(objectUrl)
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [file])
 
   return (
     <div
       onDragOver={(e) => {
         e.preventDefault()
-        setDragging(true)
+        if (!disabled) setDragging(true)
       }}
       onDragLeave={() => setDragging(false)}
       onDrop={(e) => {
         e.preventDefault()
         setDragging(false)
-        handleFiles(e.dataTransfer.files)
+        if (!disabled) handleFiles(e.dataTransfer.files)
       }}
-      className={`relative rounded-xl border-2 border-dashed transition-colors ${
-        dragging ? 'border-cyan-400 bg-cyan-950/20' : 'border-slate-700 bg-slate-900/40'
-      } aspect-square flex items-center justify-center overflow-hidden`}
+      className={`upload-dropzone${dragging ? ' is-dragging' : ''}${file ? ' has-file' : ''}${disabled ? ' is-disabled' : ''}`}
     >
-      {/* scanner corner brackets */}
-      <span className="pointer-events-none absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-cyan-500/60 rounded-tl-md" />
-      <span className="pointer-events-none absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-cyan-500/60 rounded-tr-md" />
-      <span className="pointer-events-none absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-cyan-500/60 rounded-bl-md" />
-      <span className="pointer-events-none absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-cyan-500/60 rounded-br-md" />
-
       {previewUrl ? (
-        <>
-          <img src={previewUrl} alt="MRI preview" className="w-full h-full object-cover" />
-          <button
-            onClick={onClear}
-            className="absolute top-3 right-10 bg-slate-950/80 hover:bg-slate-950 text-slate-200 rounded-full p-1.5"
-            aria-label="Remove image"
-          >
-            <X size={16} />
-          </button>
-        </>
-      ) : (
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="flex flex-col items-center gap-3 text-slate-400 hover:text-cyan-300 transition-colors px-6 text-center"
-        >
-          <ScanLine size={40} strokeWidth={1.5} />
-          <div>
-            <p className="font-medium text-slate-200">Drop MRI scan here</p>
-            <p className="text-sm text-slate-500 mt-1">or click to browse · JPG / PNG</p>
+        <div className="image-preview">
+          <img src={previewUrl} alt={`Preview of ${file.name}`} />
+          <div className="image-preview-footer">
+            <span className="selected-file"><FileImage size={16} /><span><strong>{file.name}</strong><small>{formatFileSize(file.size)}</small></span></span>
+            <button
+              type="button"
+              onClick={() => { onClear(); onError('') }}
+              className="remove-image"
+              aria-label="Remove selected image"
+              disabled={disabled}
+            >
+              <X size={16} /> Remove
+            </button>
           </div>
+          <button
+            type="button"
+            className="replace-image"
+            onClick={() => inputRef.current?.click()}
+            disabled={disabled}
+          >Choose a different image</button>
+        </div>
+      ) : (
+        <button type="button" className="upload-prompt" onClick={() => inputRef.current?.click()} disabled={disabled}>
+          <span className="upload-icon"><ImagePlus size={24} /></span>
+          <strong>Upload Brain MRI</strong>
+          <span>Drag and drop your MRI image here or</span>
+          <span className="browse-link">Browse Files</span>
+          <span className="upload-formats"><Upload size={13} /> JPG, JPEG, or PNG</span>
         </button>
       )}
 
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png"
+        id="mri-file"
+        accept=".jpg,.jpeg,.png,image/jpeg,image/png"
         className="hidden"
-        onChange={(e) => handleFiles(e.target.files)}
+        disabled={disabled}
+        onChange={(event) => {
+          handleFiles(event.target.files)
+          event.target.value = ''
+        }}
       />
     </div>
   )
+}
+
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return 'Size unavailable'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
 }

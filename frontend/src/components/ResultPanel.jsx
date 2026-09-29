@@ -1,108 +1,80 @@
-import { Download, AlertCircle } from 'lucide-react'
-import { reportDownloadUrl } from '../api'
+import { AlertTriangle, CheckCircle2, Clock3, Hash, UserRound } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import ImagePreview from './ImagePreview.jsx'
+import ReportButton from './ReportButton.jsx'
 
-const TYPE_COLORS = {
-  'No Tumor': 'bg-emerald-500',
-  Glioma: 'bg-rose-500',
-  Meningioma: 'bg-amber-500',
-  Pituitary: 'bg-violet-500',
-}
-
-export default function ResultPanel({ result, loading, error }) {
-  if (error) {
-    return (
-      <div className="rounded-xl border border-rose-900/50 bg-rose-950/20 p-6 flex items-start gap-3">
-        <AlertCircle className="text-rose-400 shrink-0 mt-0.5" size={20} />
-        <div>
-          <p className="text-rose-300 font-medium">Prediction failed</p>
-          <p className="text-rose-400/80 text-sm mt-1">{error}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-5 bg-slate-800 rounded w-1/2" />
-          <div className="h-3 bg-slate-800 rounded w-full" />
-          <div className="h-3 bg-slate-800 rounded w-5/6" />
-          <div className="h-3 bg-slate-800 rounded w-2/3" />
-        </div>
-        <p className="text-slate-500 text-sm mt-4 font-mono">Running inference on model…</p>
-      </div>
-    )
-  }
-
-  if (!result) {
-    return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 h-full flex items-center justify-center text-center">
-        <p className="text-slate-500 text-sm">
-          Upload an MRI scan and click <span className="text-slate-300">Analyze Scan</span> to see
-          the prediction here.
-        </p>
-      </div>
-    )
-  }
-
-  const color = TYPE_COLORS[result.prediction] || 'bg-cyan-500'
+export default function ResultPanel({ result, imageFile }) {
+  const scores = Object.entries(result.all_scores || {})
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 space-y-6">
-      {result.mock_mode && (
-        <div className="rounded-lg border border-amber-800/50 bg-amber-950/30 px-3 py-2 text-xs text-amber-300">
-          ⚠️ <span className="font-medium">Mock mode</span> — no trained model detected on the
-          backend, so this prediction is simulated for demo purposes, not from a real CNN. Train
-          the model (see README) to get real predictions.
-        </div>
-      )}
-      <div>
-        <p className="text-xs uppercase tracking-widest text-slate-500 font-mono">Prediction</p>
-        <div className="flex items-center gap-3 mt-2">
-          <span className={`w-3 h-3 rounded-full ${color}`} />
-          <h3 className="text-2xl font-semibold text-slate-100">{result.prediction}</h3>
-        </div>
-        <p className="text-sm text-slate-400 mt-1">
-          Confidence:{' '}
-          <span className="font-mono text-cyan-300">{result.confidence.toFixed(2)}%</span>
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        <p className="text-xs uppercase tracking-widest text-slate-500 font-mono">
-          Class Probabilities
-        </p>
-        {Object.entries(result.all_scores).map(([label, score]) => (
-          <div key={label}>
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-slate-300">{label}</span>
-              <span className="text-slate-500 font-mono">{score.toFixed(2)}%</span>
+    <div className="result-content">
+      <article className="result-hero-panel">
+        {result.mock_mode && (
+          <div className="mock-warning" role="alert">
+            <AlertTriangle size={16} />
+            The backend marked this result as mock mode. It is not a model-generated prediction.
+          </div>
+        )}
+        <div className="result-hero-grid">
+          <div className="result-image-frame">
+            <ImagePreview file={imageFile} />
+            {imageFile && <span className="result-image-name">{imageFile.name}</span>}
+          </div>
+          <div className="result-primary">
+            <span className="result-eyebrow"><CheckCircle2 size={15} /> AI CLASSIFICATION RESULT</span>
+            <span className="result-label">Prediction</span>
+            <h2>{result.prediction}</h2>
+            <div className="result-confidence">
+              <span>Confidence</span>
+              <strong>{formatScore(result.confidence)}<small>%</small></strong>
             </div>
-            <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-              <div
-                className={`h-full ${TYPE_COLORS[label] || 'bg-cyan-500'} transition-all duration-700`}
-                style={{ width: `${score}%` }}
-              />
+            <dl className="result-metadata">
+              <div><dt><UserRound size={15} />Patient name</dt><dd>{result.patient_name || 'Not provided'}</dd></div>
+              <div><dt><Hash size={15} />Record ID</dt><dd>#{result.id}</dd></div>
+              <div><dt><Clock3 size={15} />Analysis date</dt><dd>{formatDate(result.created_at)}</dd></div>
+            </dl>
+            <ReportButton recordId={result.id} />
+            <div className="result-actions">
+              <Link className="button result-action-secondary" to="/analyze">Analyze Another MRI</Link>
+              <Link className="button result-action-tertiary" to="/history">View History</Link>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      </article>
 
-      <a
-        href={reportDownloadUrl(result.id)}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 font-medium"
-      >
-        <Download size={16} />
-        Download PDF report
-      </a>
-
-      <p className="text-xs text-slate-600 border-t border-slate-800 pt-4">
-        This tool is for educational/demonstration purposes only and is not a substitute for
-        professional medical diagnosis.
-      </p>
+      <article className="score-card">
+        <div className="score-heading">
+          <div><span className="eyebrow">MODEL OUTPUT</span><h2>Class probabilities</h2></div>
+          <span>Scores returned by the backend</span>
+        </div>
+        <div className="score-list">
+          {scores.map(([label, value]) => {
+            const score = Number(value)
+            const width = Number.isFinite(score) ? Math.min(100, Math.max(0, score)) : 0
+            return (
+              <div className="score-row" key={label}>
+                <div className="score-row-label"><span>{label}</span><strong>{formatScore(value)}%</strong></div>
+                <div className="score-track" role="meter" aria-label={`${label} score`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Number.isFinite(score) ? score : 0}>
+                  <span className="score-fill" style={{ width: `${width}%` }} />
+                </div>
+              </div>
+            )
+          })}
+          {!scores.length && <p className="empty-score">No class scores were returned for this prediction.</p>}
+        </div>
+        <p className="medical-disclaimer">This academic AI system is not a substitute for professional medical diagnosis.</p>
+      </article>
     </div>
   )
+}
+
+function formatDate(value) {
+  if (!value) return 'Not available'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleString()
+}
+
+function formatScore(value) {
+  const score = Number(value)
+  return Number.isFinite(score) ? score.toFixed(2) : '—'
 }
